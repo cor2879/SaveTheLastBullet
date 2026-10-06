@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Save The Last Bullet</title>
-<script src="https://cdn.tailwindcss.com"></script>
+
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
 :root{--cyan:#00ffff;--magenta:#ff00ff;--green:#00ff88;--orange:#ff6600;--yellow:#ffff00;--red:#ff0044;--purple:#aa44ff;--teal:#00ddaa;--bg:#0a0a0f;--panel:#0d0d18;--path:#1a1a2e;--ground:#0d1a0d;--grid-line:#1a2a1a;}
@@ -50,6 +50,40 @@ body{background:var(--bg);display:flex;flex-direction:column;align-items:center;
 .scanline{position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;opacity:.03;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(255,255,255,.08) 2px,rgba(255,255,255,.08) 4px);animation:scanmove 8s linear infinite;}
 @keyframes scanmove{0%{transform:translateY(0)}100%{transform:translateY(8px)}}
 footer{color:#444;font-size:10px;padding:4px;text-align:center;font-family:'Share Tech Mono',monospace;}
+
+#board-scroll{width:840px;flex-shrink:0;}
+#touch-tools{display:none;}
+button,.tower-card,.enh-card{touch-action:manipulation;}
+@media(max-width:1068px),(pointer:coarse){
+ body{height:auto;min-height:100dvh;overflow:auto;padding-bottom:env(safe-area-inset-bottom);}
+ #scale-root{width:100%;transform:none!important;}
+ #top-hud{width:100%;height:auto;min-height:104px;flex-wrap:wrap;padding:8px;gap:8px;}
+ #top-hud .title{width:100%;text-align:center;}
+ #top-hud .stats{flex-wrap:wrap;gap:8px;font-size:13px;}
+ #hud-lvl{font-size:11px!important;min-height:44px;display:flex;align-items:center;}
+ #top-hud .btns{justify-content:center;flex-wrap:wrap;}
+ #top-hud .btns button{min-width:44px;min-height:44px;font-size:14px;}
+ #touch-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px;background:var(--panel);font-size:12px;}
+ #touch-tools button{min-height:44px;padding:8px 14px;background:#1a1a2e;border:1px solid var(--cyan);color:var(--cyan);border-radius:4px;font:inherit;}
+ #touch-hint{flex:1;min-width:120px;color:#aaa;}
+ #game-area{width:100%;flex-direction:column;}
+ #board-scroll{width:100%;overflow:auto;overscroll-behavior:contain;}
+ #game-canvas{width:100%;height:auto;touch-action:pan-x pan-y;}
+ #board-scroll.zoomed #game-canvas{width:840px;max-width:none;}
+ #sidebar{width:100%;height:auto;max-height:none;overflow:visible;padding:10px;border-left:0;border-top:1px solid #1a1a3a;}
+ #tower-list{max-height:none!important;overflow:visible!important;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
+ .tower-card{min-height:64px;padding:8px;font-size:13px;}
+ .tc-name{font-size:11px!important;}.tc-cost{font-size:13px!important;}.tc-stat{font-size:11px!important;}
+ .enh-card{min-height:48px;padding:10px!important;font-size:13px!important;}
+ .enh-card div{font-size:11px!important;}
+ #sel-info{font-size:13px;}
+ #sel-info button,#send-wave-btn{min-height:44px;font-size:13px!important;}
+ #overlay{top:0;left:0;width:100%;height:100%;min-height:260px;padding:18px;justify-content:flex-start;overflow:auto;}
+ #overlay .ov-title{font-size:clamp(24px,6vw,32px);margin-top:12px;}
+ #overlay .ov-sub{font-size:13px!important;line-height:1.5;}
+ #overlay .ov-btn{min-height:48px;}
+ footer{padding:10px;}
+}
 </style>
 </head>
 <body data-id="0">
@@ -71,8 +105,9 @@ footer{color:#444;font-size:10px;padding:4px;text-align:center;font-family:'Shar
 <span data-id="15" id="hud-sector" style="color:var(--purple);font-family:Orbitron,sans-serif;font-size:10px;white-space:nowrap;">SEC 1</span>
 </div>
 </div>
+<div id="touch-tools"><button id="btn-cancel">Cancel selection</button><button id="btn-zoom" aria-pressed="false">Zoom map</button><span id="touch-hint">Tap a tower card, then tap an open tile. Turn sideways for a larger map.</span></div>
 <div data-id="16" id="game-area" style="position:relative;">
-<canvas data-id="17" id="game-canvas" width="840" height="560"></canvas>
+<div id="board-scroll"><canvas data-id="17" id="game-canvas" width="840" height="560"></canvas></div>
 <div data-id="18" id="sidebar">
 <div data-id="19" class="stitle">⚡ TOWERS</div>
 <div data-id="20" id="tower-list" style="max-height:220px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#1a1a3a #0d0d18;padding-right:2px;"></div>
@@ -1239,7 +1274,7 @@ function renderShop(){
     html+='<div class="enh-card" data-action="sell" style="background:#111128;border:1px solid #2a1a1a;border-radius:3px;padding:4px 5px;margin-bottom:5px;cursor:pointer;font-size:9px;">';
     html+='<span style="color:var(--orange);">💰 SELL +'+sv+'g</span></div>';
   }else{
-    html+='<div style="color:#888;font-size:10px;padding:6px;background:#111128;border-radius:4px;margin-bottom:5px;">← Click a tower on the map to select it for enhancements</div>';
+    html+='<div style="color:#888;font-size:10px;padding:6px;background:#111128;border-radius:4px;margin-bottom:5px;">Tap/click a tower on the map to select it for enhancements</div>';
   }
 
   html+='<div style="font-family:Orbitron,sans-serif;font-size:9px;color:var(--cyan);margin:6px 0 3px;">BUY TOWERS</div>';
@@ -1295,6 +1330,7 @@ function renderShop(){
     el.addEventListener('click',function(){
       const idx=parseInt(el.dataset.tidx);
       G.selectedTowerType=(G.selectedTowerType===idx)?-1:idx;
+      G.selectedTower=null;
       renderShop();
     });
   });
@@ -1317,7 +1353,7 @@ function showOverlay(type){
   if(type==='title'){
     ov.innerHTML='<div class="ov-title" style="color:'+COLORS.cyan+';text-shadow:0 0 30px '+COLORS.cyan+',0 0 60px rgba(0,255,255,.3);">SAVE THE<br>LAST BULLET</div>'+
       '<div class="ov-sub" style="color:'+COLORS.magenta+'">Defend Humanity\'s Last Hope</div>'+
-      '<div class="ov-sub" style="font-size:11px;">Place towers to defend against zombie hordes across 200 waves.<br>Click tower cards → click the grid to place. Press S or ▶ to start waves.<br>Keys: 1-6 select towers | SPACE pause | S start wave</div>'+
+      '<div class="ov-sub" style="font-size:11px;">Place towers to defend against zombie hordes across 200 waves.<br>Tap/click tower cards → tap/click the grid to place. Press S or ▶ to start waves.<br>Keys: 1-9, 0 select towers | SPACE pause | S start wave</div>'+
       '<button class="ov-btn" id="start-btn">▶ CLICK TO BEGIN</button>';
     document.getElementById('start-btn').addEventListener('click',function(){ov.style.display='none';G.state='playing';showShop();});
   }else if(type==='gameover'){
@@ -1344,7 +1380,10 @@ function showOverlay(type){
 function renderSidebar(){
   if(G.state==='shop'){renderShop();return;}
   let tl=document.getElementById('tower-list');
-  if(!tl)return;
+  if(!tl){
+    document.getElementById('sidebar').innerHTML='<div class="stitle">⚡ TOWERS</div><div id="tower-list" style="max-height:220px;overflow-y:auto;"></div><div id="sel-info"></div><div class="stitle">🔴 SPAWNS: <span id="spawn-count"></span></div><div id="wave-preview"><div class="wp-title">📋 NEXT WAVE</div><div id="wp-content"></div></div>';
+    tl=document.getElementById('tower-list');
+  }
   let html='';
   TOWER_DEFS.forEach(function(d,i){
     let sel=G.selectedTowerType===i?' selected':'';
@@ -1439,7 +1478,18 @@ canvas.addEventListener('mousemove',function(e){
   G.mouseRow=Math.floor(G.mouseY/CELL);
 });
 
+// Native click supports mouse, touch and pen; ignore clicks after map dragging.
+let pointerStart=null, mapDragged=false;
+canvas.addEventListener('pointerdown',function(e){
+  pointerStart={x:e.clientX,y:e.clientY};mapDragged=false;
+});
+canvas.addEventListener('pointermove',function(e){
+  if(pointerStart&&Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)>10)mapDragged=true;
+});
+canvas.addEventListener('pointercancel',function(){mapDragged=true;pointerStart=null;});
+canvas.addEventListener('pointerup',function(){pointerStart=null;});
 canvas.addEventListener('click',function(e){
+  if(mapDragged)return;
   if(G.state!=='playing'&&G.state!=='shop')return;
   let rect=canvas.getBoundingClientRect();
   let scaleX=CW/rect.width,scaleY=CH/rect.height;
@@ -1491,6 +1541,15 @@ document.addEventListener('keydown',function(e){
     if(idx<TOWER_DEFS.length){G.selectedTowerType=idx;G.selectedTower=null;if(G.state==='shop')renderShop();else renderSidebar();}
   }
   if(e.key==='Escape'){G.selectedTowerType=-1;G.selectedTower=null;if(G.state==='shop')renderShop();else renderSidebar();}
+});
+
+document.getElementById('btn-cancel').addEventListener('click',function(){
+  G.selectedTowerType=-1;G.selectedTower=null;renderSidebar();
+});
+document.getElementById('btn-zoom').addEventListener('click',function(){
+  const zoomed=document.getElementById('board-scroll').classList.toggle('zoomed');
+  this.textContent=zoomed?'Fit map':'Zoom map';this.setAttribute('aria-pressed',String(zoomed));
+  document.getElementById('touch-hint').textContent=zoomed?'Swipe to pan the map. Tap an open tile to place a tower.':'Tap a tower card, then tap an open tile. Turn sideways for a larger map.';
 });
 
 // HUD buttons
@@ -1670,7 +1729,7 @@ function resetGame(){
 
 // ========== SCALING ==========
 function rescale(){
-  let scale=Math.min(window.innerWidth/1068,(window.innerHeight-20)/660,1);
+  let scale=window.matchMedia('(max-width:1068px), (pointer:coarse)').matches?1:Math.min(window.innerWidth/1068,(window.innerHeight-20)/660,1);
   document.getElementById('scale-root').style.transform='scale('+scale+')';
 }
 window.addEventListener('resize',rescale);
