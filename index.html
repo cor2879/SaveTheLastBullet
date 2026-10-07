@@ -84,6 +84,12 @@ button,.tower-card,.enh-card{touch-action:manipulation;}
  #overlay .ov-btn{min-height:48px;}
  footer{padding:10px;}
 }
+#audio-controls{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:6px 10px;background:#111128;font-size:12px;}
+#audio-controls button{min-height:36px;padding:6px 10px;color:var(--cyan);background:#1a1a2e;border:1px solid #2a2a4a;border-radius:4px;font:inherit;}
+#audio-controls label{display:flex;align-items:center;gap:6px;}
+#audio-controls input{width:90px;min-height:36px;accent-color:var(--cyan);}
+#audio-track{color:#888;font-size:11px;flex:1;min-width:120px;}
+@media(pointer:coarse){#audio-controls button,#audio-controls input{min-height:44px;}}
 </style>
 </head>
 <body data-id="0">
@@ -105,6 +111,7 @@ button,.tower-card,.enh-card{touch-action:manipulation;}
 <span data-id="15" id="hud-sector" style="color:var(--purple);font-family:Orbitron,sans-serif;font-size:10px;white-space:nowrap;">SEC 1</span>
 </div>
 </div>
+<div id="audio-controls"><button id="btn-mute" aria-pressed="false">🔊 Mute</button><label>Music <input id="volume-music" aria-label="Music volume" type="range" min="0" max="100"></label><label>Effects <input id="volume-effects" aria-label="Effects volume" type="range" min="0" max="100"></label><button id="btn-next-track">Next track ▶</button><span id="audio-track">Sound starts when you begin</span></div>
 <div id="touch-tools"><button id="btn-cancel">Cancel selection</button><button id="btn-zoom" aria-pressed="false">Zoom map</button><span id="touch-hint">Tap a tower card, then tap an open tile. Turn sideways for a larger map.</span></div>
 <div data-id="16" id="game-area" style="position:relative;">
 <div id="board-scroll"><canvas data-id="17" id="game-canvas" width="840" height="560"></canvas></div>
@@ -120,6 +127,7 @@ button,.tower-card,.enh-card{touch-action:manipulation;}
 </div>
 <footer data-id="28">Made by Copilot</footer>
 
+<script src="audio.js"></script>
 <script>
 // ========== CONFIG ==========
 const COLS=21,ROWS=14,CELL=40,CW=840,CH=560;
@@ -336,6 +344,7 @@ class Tower{
     if(u.shieldAura)this.shieldAura=u.shieldAura;
     if(u.rangeAura)this.rangeAura=u.rangeAura;
     this.maxHp=Math.floor(this.maxHp*1.3);this.hp=this.maxHp;
+    AudioEngine.sfx('upgrade');
     return true;
   }
   takeDamage(d){
@@ -372,6 +381,7 @@ class Tower{
       if(d<bestD){bestD=d;target=z;}
     }
     if(!target)return;
+    AudioEngine.sfx(["gun","laser","frost","mortar","tesla","flame"][this.type]);
     this.angle=Math.atan2(target.y-this.y,target.x-this.x);
     let rate=this.getRate();
     if(this.type===0){
@@ -974,6 +984,7 @@ class Zombie{
 // ========== PARTICLES ==========
 let particles=[];
 function emitParticles(x,y,color,count,type){
+  if(type==='explosion'&&count>=15)AudioEngine.sfx('explosion');
   for(let i=0;i<count;i++){
     let p={x,y,vx:(Math.random()-.5)*120,vy:(Math.random()-.5)*120,
       life:.4+Math.random()*.3,maxLife:.4+Math.random()*.3,
@@ -1131,6 +1142,7 @@ function startWave(){
   G.waveActive=true;
   G.bossActive=null;
   let isBoss=G.level%10===0;
+  AudioEngine.sfx(isBoss?'boss':'wave');
   let sc=getSpawnCount(G.level);
   G.spawnQueues=[];G.spawnTimers=[];
   for(let s=0;s<sc;s++){
@@ -1355,7 +1367,7 @@ function showOverlay(type){
       '<div class="ov-sub" style="color:'+COLORS.magenta+'">Defend Humanity\'s Last Hope</div>'+
       '<div class="ov-sub" style="font-size:11px;">Place towers to defend against zombie hordes across 200 waves.<br>Tap/click tower cards → tap/click the grid to place. Press S or ▶ to start waves.<br>Keys: 1-9, 0 select towers | SPACE pause | S start wave</div>'+
       '<button class="ov-btn" id="start-btn">▶ CLICK TO BEGIN</button>';
-    document.getElementById('start-btn').addEventListener('click',function(){ov.style.display='none';G.state='playing';showShop();});
+    document.getElementById('start-btn').addEventListener('click',function(){ov.style.display='none';G.state='playing';showShop();AudioEngine.sync(G.state);});
   }else if(type==='gameover'){
     ov.innerHTML='<div class="ov-title" style="color:'+COLORS.red+';text-shadow:0 0 20px '+COLORS.red+';">GAME OVER</div>'+
       '<div class="ov-sub">Wave Reached: '+G.level+'/200</div>'+
@@ -1372,7 +1384,7 @@ function showOverlay(type){
   }else if(type==='paused'){
     ov.innerHTML='<div class="ov-title" style="color:'+COLORS.cyan+'">⏸ PAUSED</div>'+
       '<button class="ov-btn" id="resume-btn">▶ RESUME</button>';
-    document.getElementById('resume-btn').addEventListener('click',function(){ov.style.display='none';G.state='playing';});
+    document.getElementById('resume-btn').addEventListener('click',function(){ov.style.display='none';G.state='playing';AudioEngine.sync(G.state);});
   }
 }
 
@@ -1514,7 +1526,7 @@ canvas.addEventListener('click',function(e){
       if(G.gold>=d.cost){
         G.gold-=d.cost;
         let t=new Tower(col,row,G.selectedTowerType);
-        G.towers.push(t);G.gridOccupied.add(key);
+        G.towers.push(t);G.gridOccupied.add(key);AudioEngine.sfx('place');
         if(G.state==='shop')renderShop();
         else renderSidebar();
       }
@@ -1575,6 +1587,7 @@ document.getElementById('btn-speed').addEventListener('click',function(){
 let lastTime=0;
 
 function gameLoop(timestamp){
+  AudioEngine.sync(G.state);
   let rawDt=(timestamp-lastTime)/1000;
   lastTime=timestamp;
   if(rawDt>0.1)rawDt=0.1;
@@ -1729,7 +1742,7 @@ function resetGame(){
 
 // ========== SCALING ==========
 function rescale(){
-  let scale=window.matchMedia('(max-width:1068px), (pointer:coarse)').matches?1:Math.min(window.innerWidth/1068,(window.innerHeight-20)/660,1);
+  let scale=window.matchMedia('(max-width:1068px), (pointer:coarse)').matches?1:Math.min(window.innerWidth/1068,(window.innerHeight-20)/730,1);
   document.getElementById('scale-root').style.transform='scale('+scale+')';
 }
 window.addEventListener('resize',rescale);
